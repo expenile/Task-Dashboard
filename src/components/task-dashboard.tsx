@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { createStore } from 'redux'
@@ -30,8 +30,32 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// Redux setup
-const initialState = JSON.parse(localStorage.getItem('taskState')) || {
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  priority: string;
+  comments: number;
+  files: number;
+  assignees: string[];
+}
+
+interface TaskState {
+  tasks: {
+    todo: Task[];
+    inProgress: Task[];
+    done: Task[];
+  };
+  filter: string;
+}
+
+interface Action {
+  type: string;
+  payload: any;
+}
+
+const storedState = localStorage.getItem('taskState');
+const initialState: TaskState = storedState ? JSON.parse(storedState) : {
   tasks: {
     todo: [
       {
@@ -86,9 +110,9 @@ const initialState = JSON.parse(localStorage.getItem('taskState')) || {
     ]
   },
   filter: 'all'
-}
+};
 
-function taskReducer(state = initialState, action) {
+function taskReducer(state: TaskState = initialState, action: Action): TaskState {
   switch (action.type) {
     case 'ADD_TASK':
       return {
@@ -99,14 +123,14 @@ function taskReducer(state = initialState, action) {
         }
       }
     case 'MOVE_TASK':
-      const { id, from, to } = action.payload
-      const taskToMove = state.tasks[from].find(task => task.id === id)
+      const { id, from, to } = action.payload as { id: string; from: keyof TaskState['tasks']; to: keyof TaskState['tasks'] };
+      const taskToMove = state.tasks[from].find(task => task.id === id);
       return {
         ...state,
         tasks: {
           ...state.tasks,
           [from]: state.tasks[from].filter(task => task.id !== id),
-          [to]: [...state.tasks[to], { ...taskToMove, priority: to === 'done' ? 'completed' : taskToMove.priority }]
+          [to]: [...state.tasks[to], { ...taskToMove, priority: to === 'done' ? 'completed' : taskToMove?.priority }]
         }
       }
     case 'SET_FILTER':
@@ -118,30 +142,37 @@ function taskReducer(state = initialState, action) {
       return state
   }
 }
-
 const store = createStore(taskReducer)
 
 store.subscribe(() => {
   localStorage.setItem('taskState', JSON.stringify(store.getState()))
 })
 
-const TaskCard = ({ task, listType }) => {
+interface TaskCardProps {
+  task: Task;
+  listType: string;
+}
+
+const TaskCard: React.FC<TaskCardProps> = ({ task, listType }) => {
+  const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag({
     type: 'TASK',
     item: { id: task.id, listType },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
-  })
+  });
+
+  drag(ref);
 
   return (
-    <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1, cursor: 'move' }}>
+    <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1, cursor: 'move' }}>
       <Card className="mb-4">
         <CardHeader className="p-4">
           <div className="flex items-center justify-between">
-            <Badge variant={task.priority === 'high' ? 'destructive' : task.priority === 'completed' ? 'success' : 'secondary'}>
-              {task.priority}
-            </Badge>
+          <Badge variant={task.priority === 'high' ? 'destructive' : task.priority === 'completed' ? 'default' : 'secondary'}>
+  {task.priority}
+</Badge>
             <Button variant="ghost" size="icon">
               <MoreVertical className="h-4 w-4" />
             </Button>
@@ -176,12 +207,18 @@ const TaskCard = ({ task, listType }) => {
   )
 }
 
+interface TaskListProps {
+  title: string;
+  tasks: Task[];
+  type: string;
+}
 
-const TaskList = ({ title, tasks, type }) => {
-  const dispatch = useDispatch()
+const TaskList: React.FC<TaskListProps> = ({ title, tasks, type }) => {
+  const dispatch = useDispatch();
+  const ref = useRef<HTMLDivElement>(null);
   const [, drop] = useDrop({
     accept: 'TASK',
-    drop: (item) => {
+    drop: (item: { id: string; listType: string }) => {
       if (item.listType !== type) {
         dispatch({
           type: 'MOVE_TASK',
@@ -189,10 +226,14 @@ const TaskList = ({ title, tasks, type }) => {
         })
       }
     },
-  })
+  });
+  drop(ref);
+
+  
+
 
   return (
-    <div ref={drop} className="flex-1 min-w-[320px]">
+    <div ref={ref} className="flex-1 min-w-[320px]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${
@@ -213,19 +254,19 @@ const TaskList = ({ title, tasks, type }) => {
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-const AddTaskDialog = () => {
+const AddTaskDialog: React.FC = () => {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('low')
   const dispatch = useDispatch()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const newTask = {
+    const newTask: Task = {
       id: Date.now().toString(),
       title,
       description,
@@ -284,9 +325,9 @@ const AddTaskDialog = () => {
   )
 }
 
-const Dashboard = () => {
-  const tasks = useSelector(state => state.tasks)
-  const filter = useSelector(state => state.filter)
+const Dashboard: React.FC = () => {
+  const tasks = useSelector((state: TaskState) => state.tasks)
+  const filter = useSelector((state: TaskState) => state.filter)
   const dispatch = useDispatch()
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -309,27 +350,28 @@ const Dashboard = () => {
     <DndProvider backend={HTML5Backend}>
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
-        <div className="w-64 border-r p-4 flex flex-col">
+        <div className="w-64 border-r p-4 flex flex-col bg-white">
           <div className="flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-            <img src="/main-logo.png" alt="Logo" className="w-full h-full object-cover rounded-lg" />            </div>
+              <img src="/main-logo.png" alt="Logo" className="w-full h-full object-cover rounded-lg" />
+            </div>
             <span className="font-semibold">Project M.</span>
           </div>
           
           <nav className="space-y-2">
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start text-gray-600 hover:bg-gray-100 p-3 rounded-lg">
               <Home className="mr-2 h-4 w-4" />
               Home
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start text-gray-600 hover:bg-gray-100 p-3 rounded-lg">
               <MessageSquare className="mr-2 h-4 w-4" />
               Messages
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start text-gray-600 hover:bg-gray-100 p-3 rounded-lg">
               <Users className="mr-2 h-4 w-4" />
               Members
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start text-gray-600 hover:bg-gray-100 p-3 rounded-lg">
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </Button>
@@ -338,15 +380,15 @@ const Dashboard = () => {
           <Separator className="my-4" />
 
           <div className="flex-1">
-            <h3 className="text-sm font-semibold mb-2">MY PROJECTS</h3>
+            <h3 className="text-sm font-semibold mb-2 text-gray-400 uppercase tracking-wider">MY PROJECTS</h3>
             <div className="space-y-2">
-              <Button variant="secondary" className="w-full justify-start">
+              <Button variant="secondary" className="w-full justify-start text-indigo-600 bg-indigo-50 font-medium">
                 Mobile App
               </Button>
-              <Button variant="ghost" className="w-full justify-start">
+              <Button variant="ghost" className="w-full justify-start text-gray-600 hover:bg-gray-100 p-3 rounded-lg">
                 Website Redesign
               </Button>
-              <Button variant="ghost" className="w-full justify-start">
+              <Button variant="ghost" className="w-full justify-start text-gray-600 hover:bg-gray-100 p-3 rounded-lg">
                 Design System
               </Button>
             </div>
@@ -356,37 +398,41 @@ const Dashboard = () => {
         {/* Main content */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="border-b p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 max-w-xl">
-                <Input
-                  placeholder="Search for anything..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                  prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon">
-                  <Calendar className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <MessageSquare className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Bell className="h-4 w-4" />
-                </Button>
-                <Avatar>
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback>PJ</AvatarFallback>
-                </Avatar>
-              </div>
-            </div>
-          </header>
+          <header className="border-b p-4 bg-white">
+  <div className="flex items-center justify-between">
+    <div className="flex-1 max-w-xl">
+      <div className="relative">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+          <Search className="h-4 w-4 text-muted-foreground" />
+        </span>
+        <Input
+          placeholder="Search for anything..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10"
+        />
+      </div>
+    </div>
+    <div className="flex items-center gap-4">
+      <Button variant="ghost" size="icon">
+        <Calendar className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon">
+        <MessageSquare className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon">
+        <Bell className="h-4 w-4" />
+      </Button>
+      <Avatar>
+        <AvatarImage src="/placeholder.svg?height=32&width=32" />
+        <AvatarFallback>PJ</AvatarFallback>
+      </Avatar>
+    </div>
+  </div>
+</header>
 
           {/* Content */}
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-6 bg-gray-50">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 Mobile App
