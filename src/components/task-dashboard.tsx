@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Image from 'next/image';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -170,9 +172,9 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, listType }) => {
       <Card className="mb-4">
         <CardHeader className="p-4">
           <div className="flex items-center justify-between">
-          <Badge variant={task.priority === 'high' ? 'destructive' : task.priority === 'completed' ? 'default' : 'secondary'}>
-  {task.priority}
-</Badge>
+            <Badge variant={task.priority === 'high' ? 'destructive' : task.priority === 'completed' ? 'default' : 'secondary'}>
+              {task.priority}
+            </Badge>
             <Button variant="ghost" size="icon">
               <MoreVertical className="h-4 w-4" />
             </Button>
@@ -228,9 +230,6 @@ const TaskList: React.FC<TaskListProps> = ({ title, tasks, type }) => {
     },
   });
   drop(ref);
-
-  
-
 
   return (
     <div ref={ref} className="flex-1 min-w-[320px]">
@@ -353,7 +352,14 @@ const Dashboard: React.FC = () => {
         <div className="w-64 border-r p-4 flex flex-col bg-white">
           <div className="flex items-center gap-2 mb-8">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-              <img src="/main-logo.png" alt="Logo" className="w-full h-full object-cover rounded-lg" />
+              <Image
+                src="/main-logo.png"
+                alt="Logo"
+                layout="responsive"
+                width={32}
+                height={32}
+                className="object-cover rounded-lg"
+              />
             </div>
             <span className="font-semibold">Project M.</span>
           </div>
@@ -399,37 +405,37 @@ const Dashboard: React.FC = () => {
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="border-b p-4 bg-white">
-  <div className="flex items-center justify-between">
-    <div className="flex-1 max-w-xl">
-      <div className="relative">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-        </span>
-        <Input
-          placeholder="Search for anything..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10"
-        />
-      </div>
-    </div>
-    <div className="flex items-center gap-4">
-      <Button variant="ghost" size="icon">
-        <Calendar className="h-4 w-4" />
-      </Button>
-      <Button variant="ghost" size="icon">
-        <MessageSquare className="h-4 w-4" />
-      </Button>
-      <Button variant="ghost" size="icon">
-        <Bell className="h-4 w-4" />
-      </Button>
-      <Avatar>
-        <AvatarImage src="/placeholder.svg?height=32&width=32" />
-        <AvatarFallback>PJ</AvatarFallback>
-      </Avatar>
-    </div>
-  </div>
-</header>
+            <div className="flex items-center justify-between">
+              <div className="flex-1 max-w-xl">
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                  <Input
+                    placeholder="Search for anything..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon">
+                  <Calendar className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <Avatar>
+                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                  <AvatarFallback>PJ</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </header>
 
           {/* Content */}
           <main className="flex-1 p-6 bg-gray-50">
