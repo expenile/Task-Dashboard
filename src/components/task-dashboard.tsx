@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { createStore } from 'redux'
@@ -126,7 +126,6 @@ store.subscribe(() => {
 })
 
 const TaskCard = ({ task, listType }) => {
-  const dispatch = useDispatch()
   const [{ isDragging }, drag] = useDrag({
     type: 'TASK',
     item: { id: task.id, listType },
@@ -176,6 +175,7 @@ const TaskCard = ({ task, listType }) => {
     </div>
   )
 }
+
 
 const TaskList = ({ title, tasks, type }) => {
   const dispatch = useDispatch()
